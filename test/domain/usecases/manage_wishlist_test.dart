@@ -1,13 +1,17 @@
+import 'package:euro_explorer/domain/entities/country.dart';
 import 'package:euro_explorer/domain/entities/wishlist_item.dart';
+import 'package:euro_explorer/domain/repositories/countries_repository.dart';
 import 'package:euro_explorer/domain/repositories/wishlist_repository.dart';
 import 'package:euro_explorer/domain/usecases/manage_wishlist.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockWishlistRepository extends Mock implements WishlistRepository {}
+class MockCountriesRepository extends Mock implements CountriesRepository {}
 
 void main() {
   late MockWishlistRepository mockRepository;
+  late MockCountriesRepository mockCountriesRepository;
 
   setUpAll(() {
     registerFallbackValue(
@@ -22,6 +26,7 @@ void main() {
 
   setUp(() {
     mockRepository = MockWishlistRepository();
+    mockCountriesRepository = MockCountriesRepository();
   });
 
   group('GetWishlistItems', () {
@@ -202,11 +207,50 @@ void main() {
 
     setUp(() {
       reset(mockRepository);
-      useCase = PerformWishlistStressTest(repository: mockRepository);
+      reset(mockCountriesRepository);
+      useCase = PerformWishlistStressTest(
+        repository: mockRepository,
+        countriesRepository: mockCountriesRepository,
+      );
     });
 
-    test('should generate and add 5000 fake items to repository', () async {
+    test('should clear wishlist and fetch European countries and add them to repository', () async {
       // Arrange
+      const mockCountries = [
+        Country(
+          name: 'Germany',
+          capital: 'Berlin',
+          population: 83783942,
+          region: 'Europe',
+          subregion: 'Central Europe',
+          area: 357022,
+          flagUrl: 'https://flagcdn.com/w320/de.png',
+          nativeNames: {'deu': 'Deutschland'},
+          languages: {'German': 'German'},
+          currencies: {'EUR': 'Euro'},
+          timezones: ['UTC+01:00'],
+          mapsUrl: 'https://maps.google.com/germany',
+        ),
+        Country(
+          name: 'France',
+          capital: 'Paris',
+          population: 65273511,
+          region: 'Europe',
+          subregion: 'Western Europe',
+          area: 551695,
+          flagUrl: 'https://flagcdn.com/w320/fr.png',
+          nativeNames: {'fra': 'France'},
+          languages: {'French': 'French'},
+          currencies: {'EUR': 'Euro'},
+          timezones: ['UTC+01:00'],
+          mapsUrl: 'https://maps.google.com/france',
+        ),
+      ];
+
+      when(() => mockCountriesRepository.getEuropeanCountries())
+          .thenAnswer((_) async => mockCountries);
+      when(() => mockRepository.clearWishlist())
+          .thenAnswer((_) async {});
       when(() => mockRepository.addAllStressTest(any()))
           .thenAnswer((_) async {});
 
@@ -214,17 +258,53 @@ void main() {
       await useCase();
 
       // Assert
+      verify(() => mockRepository.clearWishlist()).called(1);
       final captured = verify(() => mockRepository.addAllStressTest(captureAny()))
           .captured.single as List<WishlistItem>;
       
-      expect(captured.length, equals(5000));
-      expect(captured.first.id, startsWith('stress_test_'));
-      expect(captured.first.name, startsWith('Test Country '));
-      expect(captured.first.flagUrl, contains('flag0.png'));
+      expect(captured.length, equals(2));
+      expect(captured[0].name, equals('Germany'));
+      expect(captured[0].flagUrl, equals('https://flagcdn.com/w320/de.png'));
+      expect(captured[1].name, equals('France'));
+      expect(captured[1].flagUrl, equals('https://flagcdn.com/w320/fr.png'));
     });
 
-    test('should generate items with sequential IDs and names', () async {
+    test('should handle countries repository errors', () async {
       // Arrange
+      when(() => mockRepository.clearWishlist())
+          .thenAnswer((_) async {});
+      when(() => mockCountriesRepository.getEuropeanCountries())
+          .thenThrow(Exception('Failed to fetch countries'));
+
+      // Act & Assert
+      expect(() => useCase(), throwsException);
+      verify(() => mockRepository.clearWishlist()).called(1);
+      verifyNever(() => mockRepository.addAllStressTest(any()));
+    });
+
+    test('should convert countries to wishlist items correctly', () async {
+      // Arrange
+      const mockCountries = [
+        Country(
+          name: 'Spain',
+          capital: 'Madrid',
+          population: 46754778,
+          region: 'Europe',
+          subregion: 'Southern Europe',
+          area: 505992,
+          flagUrl: 'https://flagcdn.com/w320/es.png',
+          nativeNames: {'spa': 'España'},
+          languages: {'Spanish': 'Spanish'},
+          currencies: {'EUR': 'Euro'},
+          timezones: ['UTC+01:00'],
+          mapsUrl: 'https://maps.google.com/spain',
+        ),
+      ];
+
+      when(() => mockRepository.clearWishlist())
+          .thenAnswer((_) async {});
+      when(() => mockCountriesRepository.getEuropeanCountries())
+          .thenAnswer((_) async => mockCountries);
       when(() => mockRepository.addAllStressTest(any()))
           .thenAnswer((_) async {});
 
@@ -232,19 +312,22 @@ void main() {
       await useCase();
 
       // Assert
+      verify(() => mockRepository.clearWishlist()).called(1);
       final captured = verify(() => mockRepository.addAllStressTest(captureAny()))
           .captured.single as List<WishlistItem>;
       
-      expect(captured[0].id, equals('stress_test_0'));
-      expect(captured[0].name, equals('Test Country 0'));
-      expect(captured[100].id, equals('stress_test_100'));
-      expect(captured[100].name, equals('Test Country 100'));
-      expect(captured[4999].id, equals('stress_test_4999'));
-      expect(captured[4999].name, equals('Test Country 4999'));
+      expect(captured.length, equals(1));
+      expect(captured[0].id, equals('Spain'));
+      expect(captured[0].name, equals('Spain'));
+      expect(captured[0].flagUrl, equals('https://flagcdn.com/w320/es.png'));
     });
 
-    test('should generate items with decreasing timestamps', () async {
+    test('should handle empty countries list', () async {
       // Arrange
+      when(() => mockRepository.clearWishlist())
+          .thenAnswer((_) async {});
+      when(() => mockCountriesRepository.getEuropeanCountries())
+          .thenAnswer((_) async => []);
       when(() => mockRepository.addAllStressTest(any()))
           .thenAnswer((_) async {});
 
@@ -252,12 +335,11 @@ void main() {
       await useCase();
 
       // Assert
+      verify(() => mockRepository.clearWishlist()).called(1);
       final captured = verify(() => mockRepository.addAllStressTest(captureAny()))
           .captured.single as List<WishlistItem>;
       
-      // First item should have a more recent timestamp than later items
-      expect(captured[0].addedAt.isAfter(captured[1].addedAt), isTrue);
-      expect(captured[1].addedAt.isAfter(captured[2].addedAt), isTrue);
+      expect(captured, isEmpty);
     });
   });
 }

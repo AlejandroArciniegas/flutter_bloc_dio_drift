@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:euro_explorer/domain/entities/country.dart';
 import 'package:euro_explorer/domain/entities/wishlist_item.dart';
+import 'package:euro_explorer/domain/repositories/wishlist_repository.dart';
 import 'package:euro_explorer/domain/usecases/get_european_countries.dart';
 import 'package:euro_explorer/domain/usecases/manage_wishlist.dart';
 import 'package:euro_explorer/presentation/blocs/countries/countries_cubit.dart';
@@ -9,27 +10,38 @@ import 'package:mocktail/mocktail.dart';
 
 class MockGetEuropeanCountries extends Mock implements GetEuropeanCountries {}
 class MockIsInWishlist extends Mock implements IsInWishlist {}
+class MockBatchCheckWishlistStatus extends Mock implements BatchCheckWishlistStatus {}
 class MockAddToWishlist extends Mock implements AddToWishlist {}
 class MockRemoveFromWishlist extends Mock implements RemoveFromWishlist {}
+class MockWishlistRepository extends Mock implements WishlistRepository {}
 
 void main() {
   late CountriesCubit cubit;
   late MockGetEuropeanCountries mockGetEuropeanCountries;
   late MockIsInWishlist mockIsInWishlist;
+  late MockBatchCheckWishlistStatus mockBatchCheckWishlistStatus;
   late MockAddToWishlist mockAddToWishlist;
   late MockRemoveFromWishlist mockRemoveFromWishlist;
+  late MockWishlistRepository mockWishlistRepository;
 
   setUp(() {
     mockGetEuropeanCountries = MockGetEuropeanCountries();
     mockIsInWishlist = MockIsInWishlist();
+    mockBatchCheckWishlistStatus = MockBatchCheckWishlistStatus();
     mockAddToWishlist = MockAddToWishlist();
     mockRemoveFromWishlist = MockRemoveFromWishlist();
+    mockWishlistRepository = MockWishlistRepository();
+
+    // Mock the wishlist changes stream
+    when(() => mockWishlistRepository.wishlistChanges)
+        .thenAnswer((_) => const Stream<WishlistChangeEvent>.empty());
 
     cubit = CountriesCubit(
       getEuropeanCountries: mockGetEuropeanCountries,
-      isInWishlist: mockIsInWishlist,
+      batchCheckWishlistStatus: mockBatchCheckWishlistStatus,
       addToWishlist: mockAddToWishlist,
       removeFromWishlist: mockRemoveFromWishlist,
+      wishlistRepository: mockWishlistRepository,
     );
 
     // Register fallback values
@@ -88,8 +100,8 @@ void main() {
         'emits [CountriesLoading, CountriesLoaded] when loadCountries succeeds',
         build: () {
           when(() => mockGetEuropeanCountries()).thenAnswer((_) async => countries);
-          when(() => mockIsInWishlist('Spain')).thenAnswer((_) async => true);
-          when(() => mockIsInWishlist('France')).thenAnswer((_) async => false);
+          when(() => mockBatchCheckWishlistStatus(['Spain', 'France']))
+              .thenAnswer((_) async => {'Spain': true, 'France': false});
           return cubit;
         },
         act: (cubit) => cubit.loadCountries(),
@@ -102,8 +114,7 @@ void main() {
         ],
         verify: (_) {
           verify(() => mockGetEuropeanCountries()).called(1);
-          verify(() => mockIsInWishlist('Spain')).called(1);
-          verify(() => mockIsInWishlist('France')).called(1);
+          verify(() => mockBatchCheckWishlistStatus(['Spain', 'France'])).called(1);
         },
       );
 
@@ -241,7 +252,8 @@ void main() {
         'calls loadCountries when refresh is called',
         build: () {
           when(() => mockGetEuropeanCountries()).thenAnswer((_) async => countries);
-          when(() => mockIsInWishlist('Spain')).thenAnswer((_) async => false);
+          when(() => mockBatchCheckWishlistStatus(['Spain']))
+              .thenAnswer((_) async => {'Spain': false});
           return cubit;
         },
         act: (cubit) => cubit.refresh(),

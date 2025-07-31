@@ -1,15 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:dio_cache_interceptor_db_store/dio_cache_interceptor_db_store.dart';
-import 'package:path_provider/path_provider.dart';
-
 import 'package:euro_explorer/data/models/country_dto.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// REST Countries API client with caching
 class RestCountriesApi {
-  RestCountriesApi({Dio? dio}) : _dio = dio ?? _createDio();
+  RestCountriesApi({Dio? dio}) : _dio = dio ?? _createDio() {
+    _initializeCache();
+  }
 
   static const String _baseUrl = 'https://restcountries.com/v3.1';
+  static CacheOptions? _cacheOptions;
   final Dio _dio;
 
   static Dio _createDio() {
@@ -19,15 +21,6 @@ class RestCountriesApi {
       receiveTimeout: const Duration(seconds: 10),
       sendTimeout: const Duration(seconds: 10),
     ),);
-
-    // Set up simple memory caching for now
-    final cacheOptions = CacheOptions(
-      store: MemCacheStore(),
-      hitCacheOnErrorExcept: [401, 403],
-      maxStale: const Duration(days: 7),
-    );
-
-    dio.interceptors.add(DioCacheInterceptor(options: cacheOptions));
 
     // Add logging interceptor for development
     dio.interceptors.add(LogInterceptor(
@@ -44,6 +37,38 @@ class RestCountriesApi {
     ),);
 
     return dio;
+  }
+
+  /// Initialize cache asynchronously
+  Future<void> _initializeCache() async {
+    if (_cacheOptions != null) return; // Already set up
+
+    try {
+      final cacheDir = await getTemporaryDirectory();
+      final cacheStore = DbCacheStore(
+        databasePath: '${cacheDir.path}/countries_cache.db',
+      );
+
+      _cacheOptions = CacheOptions(
+        store: cacheStore,
+        hitCacheOnErrorExcept: [401, 403, 404],
+        maxStale: const Duration(days: 7),
+        priority: CachePriority.high,
+      );
+
+      // Add cache interceptor after setup
+      _dio.interceptors.add(DioCacheInterceptor(options: _cacheOptions!));
+    } catch (e) {
+      // Fallback to memory cache if DB cache setup fails
+      _cacheOptions = CacheOptions(
+        store: MemCacheStore(),
+        hitCacheOnErrorExcept: [401, 403, 404],
+        maxStale: const Duration(days: 7),
+      );
+      
+      // Add fallback cache interceptor
+      _dio.interceptors.add(DioCacheInterceptor(options: _cacheOptions!));
+    }
   }
 
   /// Get all European countries
@@ -125,16 +150,32 @@ class RestCountriesApi {
 
   /// Build cache options with custom TTL
   Options buildCacheOptions(Duration maxAge) {
+    // Ensure cache is initialized before use
+    if (_cacheOptions == null) {
+      // Use temporary memory cache if not initialized yet
+      return CacheOptions(
+        store: MemCacheStore(),
+        maxStale: maxAge,
+        hitCacheOnErrorExcept: [401, 403, 404],
+      ).toOptions();
+    }
+    
     return CacheOptions(
-      store: MemCacheStore(),
+      store: _cacheOptions!.store,
       maxStale: maxAge,
       hitCacheOnErrorExcept: [401, 403, 404],
+      priority: CachePriority.high,
     ).toOptions();
   }
 
-  /// Close the Dio client
-  void close() {
+  /// Close the Dio client and clean up cache
+  Future<void> close() async {
     _dio.close();
+    
+    // Clean up cache store if it's a database store
+    if (_cacheOptions?.store is DbCacheStore) {
+      await (_cacheOptions!.store! as DbCacheStore).close();
+    }
   }
 }
 
@@ -165,6 +206,7 @@ class RestCountriesException implements Exception {
       case DioExceptionType.badCertificate:
         return const RestCountriesException('SSL certificate error');
       case DioExceptionType.unknown:
+      // ignore: no_default_cases
       default:
         return RestCountriesException('Unknown error: ${e.message}');
     }

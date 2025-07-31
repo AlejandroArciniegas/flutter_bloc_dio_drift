@@ -1,13 +1,13 @@
 import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
-
 import 'package:euro_explorer/data/models/wishlist_item_dto.dart';
 import 'package:euro_explorer/domain/entities/wishlist_item.dart'
     as domain;
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 part 'app_database.g.dart';
 
@@ -74,6 +74,27 @@ class AppDatabase extends _$AppDatabase {
     final query = selectOnly(wishlistItems)..addColumns([countExp]);
     final result = await query.getSingle();
     return result.read(countExp) ?? 0;
+  }
+
+  /// Batch check if multiple items are in wishlist (optimized to avoid N+1 queries)
+  Future<Map<String, bool>> batchCheckWishlistStatus(List<String> ids) async {
+    if (ids.isEmpty) return {};
+    
+    final query = select(wishlistItems)..where((t) => t.id.isIn(ids));
+    final results = await query.get();
+    
+    // Create map with all IDs set to false initially
+    final statusMap = <String, bool>{};
+    for (final id in ids) {
+      statusMap[id] = false;
+    }
+    
+    // Set found items to true
+    for (final item in results) {
+      statusMap[item.id] = true;
+    }
+    
+    return statusMap;
   }
 }
 

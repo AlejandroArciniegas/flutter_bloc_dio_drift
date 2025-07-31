@@ -84,7 +84,7 @@ class $WishlistItemsTable extends WishlistItems
   @override
   domain.WishlistItem map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return WishlistItem(
+    return domain.WishlistItem(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       name: attachedDatabase.typeMapping

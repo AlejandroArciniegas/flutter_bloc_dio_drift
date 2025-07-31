@@ -1,5 +1,19 @@
 import 'package:euro_explorer/domain/entities/wishlist_item.dart';
 
+/// Wishlist change event types
+enum WishlistChangeType { added, removed, cleared }
+
+/// Wishlist change notification
+class WishlistChangeEvent {
+  const WishlistChangeEvent({
+    required this.type,
+    required this.countryId,
+  });
+
+  final WishlistChangeType type;
+  final String countryId;
+}
+
 /// Repository interface for wishlist operations
 abstract class WishlistRepository {
   /// Get all wishlist items
@@ -22,4 +36,10 @@ abstract class WishlistRepository {
 
   /// Performance test: Add multiple items efficiently
   Future<void> addAllStressTest(List<WishlistItem> items);
+
+  /// Batch check wishlist status for multiple countries (optimized)
+  Future<Map<String, bool>> batchCheckWishlistStatus(List<String> countryIds);
+
+  /// Stream of wishlist changes for real-time updates
+  Stream<WishlistChangeEvent> get wishlistChanges;
 }

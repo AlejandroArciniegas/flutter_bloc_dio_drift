@@ -1,5 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import 'package:euro_explorer/domain/entities/country.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 part 'country_dto.g.dart';
 
@@ -41,12 +41,12 @@ class CountryDto {
   Country toDomain() {
     return Country(
       name: name.common,
-      capital: capital?.isNotEmpty == true ? capital!.first : 'N/A',
+      capital: (capital?.isNotEmpty ?? false) ? capital!.first : 'N/A',
       population: population,
       region: region,
       subregion: subregion ?? 'N/A',
       area: area ?? 0.0,
-      flagUrl: flags.svg ?? flags.png ?? '',
+      flagUrl: flags.png ?? flags.svg ?? '',
       nativeNames: name.nativeName != null
           ? name.nativeName!.map((key, value) => MapEntry(key, value.common))
           : <String, String>{},

@@ -1,14 +1,13 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import 'package:euro_explorer/domain/entities/country.dart';
 import 'package:euro_explorer/injection_container.dart';
 import 'package:euro_explorer/presentation/blocs/country_detail/country_detail_cubit.dart';
 import 'package:euro_explorer/presentation/theme/app_theme.dart';
 import 'package:euro_explorer/presentation/widgets/error_widget.dart';
 import 'package:euro_explorer/presentation/widgets/loading_widget.dart';
+import 'package:euro_explorer/presentation/widgets/smart_flag_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Page displaying detailed information about a country
 class CountryDetailPage extends StatelessWidget {
@@ -89,7 +88,6 @@ class CountryDetailView extends StatelessWidget {
 
   Widget _buildCountryDetails(BuildContext context, CountryDetailLoaded state) {
     final country = state.country;
-    final theme = Theme.of(context);
 
     return SingleChildScrollView(
       padding: AppStyles.screenPadding,
@@ -182,23 +180,10 @@ class CountryDetailView extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: CachedNetworkImage(
+            child: SmartFlagImage(
               imageUrl: country.flagUrl,
               width: 200,
               height: 120,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                width: 200,
-                height: 120,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.flag, size: 48),
-              ),
-              errorWidget: (context, url, error) => Container(
-                width: 200,
-                height: 120,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.broken_image, size: 48),
-              ),
             ),
           ),
         ),

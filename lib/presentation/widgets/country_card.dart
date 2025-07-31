@@ -1,28 +1,32 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
-
 import 'package:euro_explorer/domain/entities/country.dart';
 import 'package:euro_explorer/presentation/theme/app_theme.dart';
+import 'package:euro_explorer/presentation/widgets/smart_flag_image.dart';
+import 'package:flutter/material.dart';
 
-/// Widget for displaying a country in a card format
+/// Optimized widget for displaying a country in a card format with staggered flag loading
 class CountryCard extends StatelessWidget {
   const CountryCard({
     required this.country,
     required this.isInWishlist,
     required this.onTap,
     required this.onWishlistToggle,
+    this.index = 0,
     super.key,
   });
 
   final Country country;
   final bool isInWishlist;
+  final int index;
   final VoidCallback onTap;
   final VoidCallback onWishlistToggle;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
+    // Calculate staggered loading delay based on index for better performance
+    final loadingDelay = Duration(milliseconds: (index * 25).clamp(0, 500));
+
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(AppStyles.borderRadius),
@@ -31,31 +35,21 @@ class CountryCard extends StatelessWidget {
           padding: AppStyles.cardPadding,
           child: Row(
             children: [
-              // Flag
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
+              // Optimized Flag with staggered loading
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SmartFlagImage(
                   imageUrl: country.flagUrl,
                   width: 60,
                   height: 40,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    width: 60,
-                    height: 40,
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: const Icon(Icons.flag),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    width: 60,
-                    height: 40,
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: const Icon(Icons.broken_image),
-                  ),
+                  loadingDelay: loadingDelay,
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Country info
               Expanded(
                 child: Column(
@@ -95,17 +89,18 @@ class CountryCard extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               // Wishlist button
               IconButton(
                 onPressed: onWishlistToggle,
                 icon: Icon(
                   isInWishlist ? Icons.favorite : Icons.favorite_border,
-                  color: isInWishlist 
-                      ? theme.colorScheme.error 
+                  color: isInWishlist
+                      ? theme.colorScheme.error
                       : theme.colorScheme.onSurfaceVariant,
                 ),
-                tooltip: isInWishlist ? 'Remove from wishlist' : 'Add to wishlist',
+                tooltip:
+                    isInWishlist ? 'Remove from wishlist' : 'Add to wishlist',
               ),
             ],
           ),
