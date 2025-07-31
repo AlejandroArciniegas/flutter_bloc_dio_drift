@@ -320,7 +320,7 @@ The project includes a comprehensive GitHub Actions pipeline:
 
 | List View | Country Details | Wishlist |
 |-----------|----------------|----------|
-| ![List](docs/screenshots/countries_list.png) | ![Details](docs/screenshots/country_detail.png) | ![Wishlist](docs/screenshots/wishlist.png) |
+|<img width="384" height="828" alt="image" src="https://github.com/user-attachments/assets/8d16568a-8d9a-4adc-b19a-dcdef25d7aa4" />|<img width="383" height="826" alt="image" src="https://github.com/user-attachments/assets/fe97d834-2516-46ca-ac28-b7c1d0c39628" />|<img width="382" height="825" alt="image" src="https://github.com/user-attachments/assets/9bcaea2f-2ea9-46a8-8e7e-69d5bf21606a" />|
 
 ## 🤝 Contributing
 
