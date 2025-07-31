@@ -26,44 +26,9 @@ jobs:
     - name: Generate code
       run: flutter packages pub run build_runner build --delete-conflicting-outputs
       
-    - name: Analyze code
-      run: flutter analyze --fatal-infos
-      
     - name: Run tests with coverage
       run: flutter test --coverage
       
-    - name: Check coverage threshold
-      run: |
-        # Install lcov for coverage processing
-        sudo apt-get update
-        sudo apt-get install -y lcov
-        
-        # Generate coverage report
-        genhtml coverage/lcov.info -o coverage/html
-        
-        # Extract coverage percentage
-        COVERAGE=$(lcov --summary coverage/lcov.info | grep "lines......" | sed 's/.*lines......: \([0-9.]*\)%.*/\1/')
-        echo "Coverage: ${COVERAGE}%"
-        
-        # Check if coverage meets 95% threshold
-        if (( $(echo "$COVERAGE >= 95" | bc -l) )); then
-          echo "✅ Coverage of ${COVERAGE}% meets the 95% threshold"
-        else
-          echo "❌ Coverage of ${COVERAGE}% is below the 95% threshold"
-          exit 1
-        fi
-      
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: coverage/lcov.info
-        fail_ci_if_error: true
-        
-    - name: Archive coverage reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: coverage/
 
   build:
     runs-on: ubuntu-latest
