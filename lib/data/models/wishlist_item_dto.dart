@@ -4,6 +4,7 @@ import 'package:euro_explorer/domain/entities/wishlist_item.dart'
     as domain;
 
 /// Data class for Drift database
+@UseRowClass(domain.WishlistItem)
 class WishlistItems extends Table {
   TextColumn get id => text().withLength(min: 1, max: 255)();
   TextColumn get name => text().withLength(min: 1, max: 255)();
