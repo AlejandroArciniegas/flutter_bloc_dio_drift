@@ -98,7 +98,7 @@ class PerformanceMonitor {
   static void printSummary() {
     if (!kDebugMode) return;
     for (final operation in getRecordedOperations()) {
-      final stats = getStats(operation);
+      getStats(operation);
     }
   }
 }

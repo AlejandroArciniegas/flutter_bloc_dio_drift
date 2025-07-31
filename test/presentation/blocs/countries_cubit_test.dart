@@ -18,7 +18,6 @@ class MockWishlistRepository extends Mock implements WishlistRepository {}
 void main() {
   late CountriesCubit cubit;
   late MockGetEuropeanCountries mockGetEuropeanCountries;
-  late MockIsInWishlist mockIsInWishlist;
   late MockBatchCheckWishlistStatus mockBatchCheckWishlistStatus;
   late MockAddToWishlist mockAddToWishlist;
   late MockRemoveFromWishlist mockRemoveFromWishlist;
@@ -26,7 +25,6 @@ void main() {
 
   setUp(() {
     mockGetEuropeanCountries = MockGetEuropeanCountries();
-    mockIsInWishlist = MockIsInWishlist();
     mockBatchCheckWishlistStatus = MockBatchCheckWishlistStatus();
     mockAddToWishlist = MockAddToWishlist();
     mockRemoveFromWishlist = MockRemoveFromWishlist();
